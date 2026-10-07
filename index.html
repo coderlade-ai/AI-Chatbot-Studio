@@ -1,1646 +1,289 @@
-<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nexus AI - Intelligent Chat Studio</title>
-  
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#eef2ff',
-              100: '#e0e7ff',
-              400: '#818cf8',
-              500: '#6366f1',
-              600: '#4f46e5',
-              700: '#4338ca',
-            },
-            dark: {
-              bg: '#0f172a',
-              card: '#1e293b',
-              border: '#334155',
-              hover: '#283548'
-            }
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-            mono: ['JetBrains Mono', 'Fira Code', 'Courier New', 'monospace']
-          }
-        }
-      }
-    };
-  </script>
-
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- Marked.js for Markdown Rendering -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-  <!-- Highlight.js for Code Highlighting -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-
-  <style>
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(148, 163, 184, 0.25);
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(148, 163, 184, 0.45);
-    }
-
-    /* Markdown Typography & Bubble Styling */
-    .prose-ai {
-      line-height: 1.7;
-    }
-    .prose-ai p {
-      margin-bottom: 0.85rem;
-    }
-    .prose-ai p:last-child {
-      margin-bottom: 0;
-    }
-    .prose-ai ul, .prose-ai ol {
-      margin-top: 0.5rem;
-      margin-bottom: 0.85rem;
-      padding-left: 1.5rem;
-    }
-    .prose-ai ul { list-style-type: disc; }
-    .prose-ai ol { list-style-type: decimal; }
-    .prose-ai li { margin-bottom: 0.25rem; }
-    .prose-ai blockquote {
-      border-left: 3px solid #6366f1;
-      padding-left: 1rem;
-      font-style: italic;
-      margin: 0.85rem 0;
-      color: #94a3b8;
-    }
-    .prose-ai table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 1rem 0;
-      font-size: 0.875rem;
-    }
-    .prose-ai th, .prose-ai td {
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      padding: 0.5rem 0.75rem;
-      text-align: left;
-    }
-    .prose-ai th {
-      background-color: rgba(99, 102, 241, 0.1);
-      font-weight: 600;
-    }
-
-    /* Cursor Pulse for Typewriter */
-    .cursor-blink::after {
-      content: '▋';
-      display: inline-block;
-      margin-left: 2px;
-      vertical-align: baseline;
-      color: #6366f1;
-      animation: blink 1s step-end infinite;
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-
-    /* Voice Recording Pulse */
-    @keyframes pulse-ring {
-      0% { transform: scale(0.95); opacity: 0.8; }
-      50% { transform: scale(1.15); opacity: 0.4; }
-      100% { transform: scale(0.95); opacity: 0.8; }
-    }
-    .voice-pulse {
-      animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-  </style>
-</head>
-
-<body class="bg-gray-50 dark:bg-dark-bg text-slate-800 dark:text-slate-100 font-sans h-screen flex overflow-hidden antialiased select-none">
-
-  <!-- Sidebar Backdrop (Mobile) -->
-  <div id="sidebar-backdrop" class="fixed inset-0 bg-black/60 z-30 hidden lg:hidden transition-opacity"></div>
-
-  <!-- Main Sidebar -->
-  <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-72 bg-white dark:bg-dark-card border-r border-gray-200 dark:border-dark-border flex flex-col transition-transform duration-300 transform -translate-x-full lg:translate-x-0">
-    
-    <!-- Sidebar Header -->
-    <div class="p-4 border-b border-gray-100 dark:border-dark-border/60 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
-          <i data-lucide="sparkles" class="w-5 h-5"></i>
-        </div>
-        <div>
-          <span class="font-bold text-base tracking-tight block">Nexus AI</span>
-          <span class="text-[10px] uppercase font-semibold text-brand-600 dark:text-brand-400 tracking-wider">Studio v2.5</span>
-        </div>
-      </div>
-      <button id="close-sidebar-btn" class="lg:hidden p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-dark-hover">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
-    </div>
-
-    <!-- New Chat & Search Controls -->
-    <div class="p-3 space-y-2">
-      <button id="new-chat-btn" class="w-full flex items-center justify-between px-3.5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-sm transition font-medium text-sm group">
-        <span class="flex items-center gap-2">
-          <i data-lucide="plus-circle" class="w-4 h-4 transition-transform group-hover:rotate-90"></i>
-          <span>New Thread</span>
-        </span>
-        <kbd class="text-[10px] bg-brand-700/60 px-1.5 py-0.5 rounded text-brand-100">⌘K</kbd>
-      </button>
-
-      <div class="relative">
-        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-gray-400"></i>
-        <input id="search-chats-input" type="text" placeholder="Search conversations..." class="w-full pl-9 pr-3 py-1.5 bg-gray-100 dark:bg-slate-900/60 border border-transparent dark:border-dark-border/60 rounded-lg text-xs focus:outline-none focus:border-brand-500 placeholder-gray-400 transition" />
-      </div>
-    </div>
-
-    <!-- Conversation History List -->
-    <div class="flex-1 overflow-y-auto px-2 py-1 space-y-1" id="chat-list-container">
-      <!-- Chat history items will be rendered dynamically here -->
-    </div>
-
-    <!-- Sidebar Bottom Controls -->
-    <div class="p-3 border-t border-gray-100 dark:border-dark-border/60 bg-gray-50/50 dark:bg-dark-card/50 space-y-1">
-      <div class="flex items-center justify-between px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400">
-        <span class="flex items-center gap-1.5">
-          <i data-lucide="database" class="w-3.5 h-3.5"></i>
-          <span id="storage-status">Local Active</span>
-        </span>
-        <div class="flex items-center gap-1">
-          <button id="export-all-btn" title="Export All Chats (JSON)" class="p-1 hover:text-brand-500 rounded transition">
-            <i data-lucide="download" class="w-3.5 h-3.5"></i>
-          </button>
-          <button id="clear-all-btn" title="Delete All History" class="p-1 hover:text-red-500 rounded transition">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Settings & Persona Toggle -->
-      <button id="open-settings-btn" class="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover rounded-lg transition">
-        <span class="flex items-center gap-2">
-          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-brand-500"></i>
-          <span>Model & Settings</span>
-        </span>
-        <span id="active-persona-badge" class="px-1.5 py-0.5 text-[10px] bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 rounded font-semibold truncate max-w-[80px]">Assistant</span>
-      </button>
-
-      <!-- Theme Switcher Button -->
-      <button id="theme-toggle-btn" class="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover rounded-lg transition">
-        <span class="flex items-center gap-2">
-          <i id="theme-toggle-icon" data-lucide="moon" class="w-4 h-4 text-amber-500"></i>
-          <span id="theme-toggle-text">Dark Appearance</span>
-        </span>
-        <span class="text-[10px] text-gray-400" id="theme-label">Active</span>
-      </button>
-    </div>
-  </aside>
-
-  <!-- Main Chat Workspace -->
-  <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-white dark:bg-dark-bg">
-
-    <!-- Top Navigation Bar -->
-    <header class="h-14 border-b border-gray-200 dark:border-dark-border/80 px-4 flex items-center justify-between bg-white/80 dark:bg-dark-bg/80 backdrop-blur-md z-10">
-      <div class="flex items-center gap-3">
-        <button id="open-sidebar-btn" class="lg:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover">
-          <i data-lucide="menu" class="w-5 h-5"></i>
-        </button>
-
-        <div class="flex items-center gap-2">
-          <h2 id="current-chat-title" class="text-sm font-semibold truncate max-w-[200px] sm:max-w-xs md:max-w-md">New Conversation</h2>
-          <button id="rename-chat-btn" title="Rename Title" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
-            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Header Action Controls -->
-      <div class="flex items-center gap-2">
-        <div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-dark-card border border-gray-200 dark:border-dark-border text-xs text-gray-600 dark:text-gray-300">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span id="model-pill-name" class="font-mono text-[11px]">gemini-3-flash</span>
-        </div>
-
-        <!-- Export Dropdown Trigger -->
-        <button id="export-current-md-btn" title="Export as Markdown" class="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover rounded-lg transition text-xs flex items-center gap-1">
-          <i data-lucide="file-down" class="w-4 h-4"></i>
-          <span class="hidden md:inline">Export</span>
-        </button>
-
-        <!-- Clear Messages in Thread -->
-        <button id="clear-thread-btn" title="Clear Thread Messages" class="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-dark-hover rounded-lg transition">
-          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-        </button>
-      </div>
-    </header>
-
-    <!-- Message Container -->
-    <div id="messages-container" class="flex-1 overflow-y-auto px-4 md:px-8 lg:px-12 py-6 space-y-6">
-      
-      <!-- Welcome Screen (Visible when chat is empty) -->
-      <div id="welcome-screen" class="max-w-3xl mx-auto h-full flex flex-col justify-center items-center text-center py-8">
-        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-xl shadow-brand-500/25 mb-4">
-          <i data-lucide="bot" class="w-8 h-8"></i>
-        </div>
-        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
-          How can I assist you today?
-        </h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mb-8">
-          Harness the intelligence of modern generative AI for full-stack programming, creative prose, research, or complex architecture.
-        </p>
-
-        <!-- Prompt Starter Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl text-left">
-          
-          <button class="starter-card p-4 rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-card hover:border-brand-500 dark:hover:border-brand-500 hover:shadow-md transition group text-left" data-prompt="Analyze this code architecture for performance and suggest production refactoring tips for clean async JavaScript.">
-            <div class="flex items-center gap-2 mb-1.5 text-brand-600 dark:text-brand-400 font-semibold text-xs">
-              <i data-lucide="code-2" class="w-4 h-4"></i>
-              <span>Engineering Architecture</span>
-            </div>
-            <p class="text-xs text-gray-600 dark:text-gray-300">Analyze clean async patterns & state management optimizations.</p>
-          </button>
-
-          <button class="starter-card p-4 rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-card hover:border-brand-500 dark:hover:border-brand-500 hover:shadow-md transition group text-left" data-prompt="Compose a crisp, compelling product announcement email for an AI analytics platform release.">
-            <div class="flex items-center gap-2 mb-1.5 text-emerald-600 dark:text-emerald-400 font-semibold text-xs">
-              <i data-lucide="feather" class="w-4 h-4"></i>
-              <span>Creative Writing</span>
-            </div>
-            <p class="text-xs text-gray-600 dark:text-gray-300">Draft high-conversion product announcements and emails.</p>
-          </button>
-
-          <button class="starter-card p-4 rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-card hover:border-brand-500 dark:hover:border-brand-500 hover:shadow-md transition group text-left" data-prompt="Explain quantum entanglement and superpositions using a fun, intuitive coin flip analogy.">
-            <div class="flex items-center gap-2 mb-1.5 text-amber-600 dark:text-amber-400 font-semibold text-xs">
-              <i data-lucide="lightbulb" class="w-4 h-4"></i>
-              <span>Intuitive Explanations</span>
-            </div>
-            <p class="text-xs text-gray-600 dark:text-gray-300">Break down quantum mechanics using intuitive analogies.</p>
-          </button>
-
-          <button class="starter-card p-4 rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-card hover:border-brand-500 dark:hover:border-brand-500 hover:shadow-md transition group text-left" data-prompt="Design a 30-day comprehensive fitness and meal nutrition blueprint for strength gain and stamina.">
-            <div class="flex items-center gap-2 mb-1.5 text-purple-600 dark:text-purple-400 font-semibold text-xs">
-              <i data-lucide="compass" class="w-4 h-4"></i>
-              <span>Strategic Planning</span>
-            </div>
-            <p class="text-xs text-gray-600 dark:text-gray-300">Design a balanced, structured fitness and habit schedule.</p>
-          </button>
-
-        </div>
-      </div>
-
-      <!-- Dynamic Messages Feed -->
-      <div id="messages-list" class="max-w-3xl mx-auto space-y-6">
-        <!-- Injected via JavaScript -->
-      </div>
-    </div>
-
-    <!-- Input & Dictation Area -->
-    <div class="p-3 md:p-4 border-t border-gray-200 dark:border-dark-border/80 bg-white/90 dark:bg-dark-bg/95 backdrop-blur-sm relative">
-      <div class="max-w-3xl mx-auto">
-        
-        <!-- Stop Generation Floating Button -->
-        <div id="stop-generation-container" class="hidden absolute -top-11 left-1/2 transform -translate-x-1/2 z-20">
-          <button id="stop-generation-btn" class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold shadow-lg hover:scale-105 active:scale-95 transition">
-            <i data-lucide="square" class="w-3.5 h-3.5 fill-current"></i>
-            <span>Stop generating</span>
-          </button>
-        </div>
-
-        <!-- Attachment Previews Badge Container -->
-        <div id="attachments-preview" class="flex flex-wrap gap-2 mb-2 empty:hidden"></div>
-
-        <!-- Main Prompt Input Box -->
-        <div class="relative bg-gray-100 dark:bg-dark-card rounded-2xl border border-gray-200 dark:border-dark-border focus-within:border-brand-500 dark:focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 shadow-sm transition flex flex-col">
-          
-          <textarea id="chat-textarea" rows="1" placeholder="Type a message or press Shift+Enter for new line..." class="w-full bg-transparent px-4 pt-3 pb-2 text-sm text-slate-800 dark:text-slate-100 placeholder-gray-400 focus:outline-none resize-none max-h-48 overflow-y-auto leading-relaxed"></textarea>
-
-          <!-- Input Action Bar -->
-          <div class="flex items-center justify-between px-3 pb-2 pt-1 select-none">
-            
-            <div class="flex items-center gap-1">
-              <!-- File Attachment Button -->
-              <input type="file" id="file-input" class="hidden" multiple accept="image/*,.txt,.md,.json,.js,.py,.html,.css" />
-              <button id="attach-file-btn" type="button" title="Attach file or image" class="p-2 text-gray-500 hover:text-brand-500 hover:bg-gray-200 dark:hover:bg-dark-hover rounded-xl transition">
-                <i data-lucide="paperclip" class="w-4 h-4"></i>
-              </button>
-
-              <!-- Voice Dictation Button -->
-              <button id="voice-dictation-btn" type="button" title="Voice dictation (Speech to text)" class="p-2 text-gray-500 hover:text-brand-500 hover:bg-gray-200 dark:hover:bg-dark-hover rounded-xl transition relative">
-                <i data-lucide="mic" class="w-4 h-4"></i>
-                <span id="voice-indicator" class="hidden absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 voice-pulse"></span>
-              </button>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <!-- Token & Character Counter -->
-              <span id="char-counter" class="text-[11px] font-mono text-gray-400 hidden sm:inline">0 chars</span>
-
-              <!-- Send Button -->
-              <button id="send-btn" type="button" disabled class="p-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:hover:bg-brand-600 text-white rounded-xl shadow-md transition disabled:cursor-not-allowed">
-                <i data-lucide="arrow-up" class="w-4 h-4"></i>
-              </button>
-            </div>
-
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between text-[11px] text-gray-400 mt-2 px-1">
-          <span>Nexus can make mistakes. Verify important factual details.</span>
-          <span class="hidden md:inline font-mono">Shift + Enter for multiline</span>
-        </div>
-
-      </div>
-    </div>
-  </main>
-
-  <!-- Settings & Persona Modal -->
-  <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-      
-      <!-- Modal Header -->
-      <div class="p-4 border-b border-gray-100 dark:border-dark-border flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <i data-lucide="settings" class="w-5 h-5 text-brand-500"></i>
-          <h3 class="font-bold text-base">Studio Preferences</h3>
-        </div>
-        <button id="close-settings-btn" class="p-1 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-hover">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <!-- Modal Body -->
-      <div class="p-5 overflow-y-auto space-y-4 text-xs">
-        
-        <!-- API Key Config -->
-        <div>
-          <label class="block font-semibold mb-1 text-gray-700 dark:text-gray-300">Gemini API Key</label>
-          <div class="relative">
-            <input type="password" id="api-key-input" placeholder="Leave empty for auto built-in / simulated mode..." class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-dark-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 font-mono pr-9" />
-            <button id="toggle-key-visibility" type="button" class="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-200">
-              <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-          <p class="text-[11px] text-gray-400 mt-1">
-            If left blank, the app runs flawlessly using our offline contextual simulator or canvas integration.
-          </p>
-        </div>
-
-        <!-- Model Selection -->
-        <div>
-          <label class="block font-semibold mb-1 text-gray-700 dark:text-gray-300">AI Model</label>
-          <select id="model-select" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-dark-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500">
-            <option value="gemini-3-flash-preview">gemini-3-flash-preview (Fastest & Recommended)</option>
-            <option value="gemini-1.5-flash">gemini-1.5-flash (Standard)</option>
-            <option value="gemini-1.5-pro">gemini-1.5-pro (High Reasoning)</option>
-          </select>
-        </div>
-
-        <!-- Persona Preset -->
-        <div>
-          <label class="block font-semibold mb-1 text-gray-700 dark:text-gray-300">System Persona Preset</label>
-          <select id="persona-select" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-dark-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500">
-            <option value="assistant">Helpful & Thorough Assistant</option>
-            <option value="software_engineer">Senior Software Architect (Clean code & design patterns)</option>
-            <option value="creative_writer">Creative Prolific Writer (Rich vocabulary & imagery)</option>
-            <option value="socratic_tutor">Socratic Academic Tutor (Guides with thought-provoking questions)</option>
-            <option value="executive_analyst">Executive Business Analyst (Concise summaries & data tables)</option>
-          </select>
-        </div>
-
-        <!-- Custom System Instruction -->
-        <div>
-          <label class="block font-semibold mb-1 text-gray-700 dark:text-gray-300">Custom System Instruction</label>
-          <textarea id="system-prompt-input" rows="3" placeholder="You are a brilliant AI partner..." class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-dark-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500"></textarea>
-        </div>
-
-        <!-- Temperature Slider -->
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <label class="font-semibold text-gray-700 dark:text-gray-300">Creativity (Temperature)</label>
-            <span id="temp-display" class="font-mono text-brand-500 font-bold">0.7</span>
-          </div>
-          <input type="range" id="temp-slider" min="0" max="1" step="0.05" value="0.7" class="w-full accent-brand-500" />
-          <div class="flex justify-between text-[10px] text-gray-400 mt-0.5">
-            <span>Precise (0.0)</span>
-            <span>Balanced (0.7)</span>
-            <span>Creative (1.0)</span>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="p-4 border-t border-gray-100 dark:border-dark-border flex justify-end gap-2 bg-gray-50 dark:bg-slate-900/50">
-        <button id="cancel-settings-btn" class="px-4 py-2 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-hover transition text-xs font-semibold">
-          Cancel
-        </button>
-        <button id="save-settings-btn" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white transition text-xs font-semibold shadow-md">
-          Save Preferences
-        </button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Custom Action / Confirm Modal -->
-  <div id="confirm-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-2xl w-full max-w-sm p-5 shadow-2xl text-center">
-      <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 text-red-500 mx-auto flex items-center justify-center mb-3">
-        <i data-lucide="alert-triangle" class="w-6 h-6"></i>
-      </div>
-      <h4 id="confirm-modal-title" class="font-bold text-base mb-1">Confirm Action</h4>
-      <p id="confirm-modal-desc" class="text-xs text-gray-500 dark:text-gray-400 mb-5">Are you sure you want to proceed?</p>
-      <div class="flex gap-2 justify-center">
-        <button id="confirm-cancel-btn" class="flex-1 py-2 rounded-xl bg-gray-100 dark:bg-dark-hover text-gray-700 dark:text-gray-300 text-xs font-semibold">Cancel</button>
-        <button id="confirm-accept-btn" class="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold">Confirm</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Rename Conversation Prompt Modal -->
-  <div id="rename-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-2xl w-full max-w-sm p-5 shadow-2xl">
-      <h4 class="font-bold text-sm mb-3">Rename Conversation</h4>
-      <input type="text" id="rename-input" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-dark-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 mb-4" />
-      <div class="flex gap-2 justify-end">
-        <button id="rename-cancel-btn" class="px-3 py-1.5 rounded-xl text-gray-500 text-xs font-semibold hover:bg-gray-100 dark:hover:bg-dark-hover">Cancel</button>
-        <button id="rename-save-btn" class="px-3 py-1.5 rounded-xl bg-brand-600 text-white text-xs font-semibold hover:bg-brand-700">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast Notification System -->
-  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
-
-  <!-- Main JavaScript Logic -->
-  <script>
-    const STORAGE_KEY = 'nexus_ai_chatbot_app_state_v2';
-
-    // Persona Default Prompts
-    const PERSONA_PROMPTS = {
-      assistant: "You are Nexus AI, a polite, versatile, and highly capable assistant. Provide well-structured, clear answers with Markdown styling and step-by-step logic when appropriate.",
-      software_engineer: "You are an elite Senior Staff Software Architect. Write resilient, maintainable, production-ready code with complete syntax highlighting, proper error handling, Big-O analysis, and architectural best practices.",
-      creative_writer: "You are an award-winning creative author and dramatist. Utilize vivid sensory details, captivating prose, emotional resonance, and imaginative storytelling metaphors.",
-      socratic_tutor: "You are a master academic tutor practicing the Socratic method. Explain core concepts clearly, provide illustrative analogies, and follow up with an insightful guiding question to test understanding.",
-      executive_analyst: "You are an executive business and data consultant. Deliver high-impact bulleted executive summaries, SWOT perspectives, risk assessments, and clean markdown tables."
-    };
-
-    // Default Application State
-    let state = {
-      chats: [],
-      activeChatId: null,
-      theme: 'dark',
-      settings: {
-        apiKey: '',
-        model: 'gemini-3-flash-preview',
-        persona: 'assistant',
-        systemPrompt: PERSONA_PROMPTS.assistant,
-        temperature: 0.7
-      }
-    };
-
-    let activeAttachments = [];
-    let isGenerating = false;
-    let abortController = null;
-    let speechRecognition = null;
-    let isRecording = false;
-
-    // Load state from LocalStorage
-    function loadSavedState() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          state = { ...state, ...parsed };
-        }
-      } catch (err) {
-        console.warn('Failed to parse localStorage state:', err);
-      }
-
-      // Ensure at least one chat exists
-      if (!state.chats || state.chats.length === 0) {
-        createNewChat(false);
-      } else if (!state.activeChatId || !state.chats.find(c => c.id === state.activeChatId)) {
-        state.activeChatId = state.chats[0].id;
-      }
-    }
-
-    function saveState() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (err) {
-        console.error('Storage quota exceeded or error saving:', err);
-      }
-    }
-
-    // Initialize Markdown and Code Highlight Renderer
-    marked.setOptions({
-      highlight: function(code, lang) {
-        if (lang && hljs.getLanguage(lang)) {
-          try {
-            return hljs.highlight(code, { language: lang }).value;
-          } catch (__) {}
-        }
-        return hljs.highlightAuto(code).value;
-      },
-      breaks: true,
-      gfm: true
-    });
-
-    // Custom renderer for code block badges and copy buttons
-    const renderer = new marked.Renderer();
-    renderer.code = function(code, language) {
-      const validLang = language || 'plaintext';
-      const safeCode = encodeURIComponent(code);
-      return `
-        <div class="my-4 rounded-xl overflow-hidden border border-slate-700 bg-slate-900 shadow-md">
-          <div class="flex items-center justify-between px-4 py-1.5 bg-slate-800/90 text-slate-300 text-xs border-b border-slate-700 font-mono">
-            <span class="font-medium text-brand-400 lowercase">${validLang}</span>
-            <button class="copy-code-btn flex items-center gap-1.5 hover:text-white px-2 py-0.5 rounded hover:bg-slate-700/60 transition" data-code="${safeCode}">
-              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-              <span>Copy</span>
-            </button>
-          </div>
-          <pre class="p-4 text-xs font-mono overflow-x-auto text-slate-100"><code>${code}</code></pre>
-        </div>
-      `;
-    };
-    marked.use({ renderer });
-
-    function applyTheme(theme) {
-      state.theme = theme;
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-        document.getElementById('theme-toggle-icon').setAttribute('data-lucide', 'sun');
-        document.getElementById('theme-toggle-text').textContent = 'Light Appearance';
-        document.getElementById('theme-label').textContent = 'Dark';
-      } else {
-        document.documentElement.classList.remove('dark');
-        document.getElementById('theme-toggle-icon').setAttribute('data-lucide', 'moon');
-        document.getElementById('theme-toggle-text').textContent = 'Dark Appearance';
-        document.getElementById('theme-label').textContent = 'Light';
-      }
-      lucide.createIcons();
-      saveState();
-    }
-
-    function toggleTheme() {
-      applyTheme(state.theme === 'dark' ? 'light' : 'dark');
-      showToast(`Switched to ${state.theme} mode`, 'info');
-    }
-
-    function getActiveChat() {
-      return state.chats.find(c => c.id === state.activeChatId);
-    }
-
-    function createNewChat(autoRender = true) {
-      const newChat = {
-        id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-        title: 'New Conversation',
-        createdAt: new Date().toISOString(),
-        isPinned: false,
-        messages: []
-      };
-      state.chats.unshift(newChat);
-      state.activeChatId = newChat.id;
-      saveState();
-
-      if (autoRender) {
-        renderSidebarChats();
-        renderActiveConversation();
-        // Close mobile sidebar if open
-        closeMobileSidebar();
-      }
-    }
-
-    function switchChat(chatId) {
-      if (state.activeChatId === chatId) return;
-      if (isGenerating) stopGeneration();
-      state.activeChatId = chatId;
-      saveState();
-      renderSidebarChats();
-      renderActiveConversation();
-      closeMobileSidebar();
-    }
-
-    function togglePinChat(chatId, event) {
-      event.stopPropagation();
-      const chat = state.chats.find(c => c.id === chatId);
-      if (chat) {
-        chat.isPinned = !chat.isPinned;
-        saveState();
-        renderSidebarChats();
-        showToast(chat.isPinned ? 'Chat pinned' : 'Chat unpinned', 'info');
-      }
-    }
-
-    function deleteChat(chatId, event) {
-      if (event) event.stopPropagation();
-      showConfirmModal(
-        'Delete Conversation',
-        'This thread and all messages will be permanently deleted.',
-        () => {
-          state.chats = state.chats.filter(c => c.id !== chatId);
-          if (state.chats.length === 0) {
-            createNewChat(false);
-          } else if (state.activeChatId === chatId) {
-            state.activeChatId = state.chats[0].id;
-          }
-          saveState();
-          renderSidebarChats();
-          renderActiveConversation();
-          showToast('Conversation deleted', 'info');
-        }
-      );
-    }
-
-    function renameCurrentChat() {
-      const chat = getActiveChat();
-      if (!chat) return;
-
-      const modal = document.getElementById('rename-modal');
-      const input = document.getElementById('rename-input');
-      input.value = chat.title;
-      modal.classList.remove('hidden');
-      input.focus();
-
-      const saveBtn = document.getElementById('rename-save-btn');
-      const cancelBtn = document.getElementById('rename-cancel-btn');
-
-      const cleanup = () => {
-        modal.classList.add('hidden');
-        saveBtn.onclick = null;
-        cancelBtn.onclick = null;
-      };
-
-      saveBtn.onclick = () => {
-        const val = input.value.trim();
-        if (val) {
-          chat.title = val;
-          saveState();
-          renderSidebarChats();
-          document.getElementById('current-chat-title').textContent = chat.title;
-          showToast('Thread renamed', 'success');
-        }
-        cleanup();
-      };
-
-      cancelBtn.onclick = cleanup;
-    }
-
-    function renderSidebarChats(searchTerm = '') {
-      const container = document.getElementById('chat-list-container');
-      container.innerHTML = '';
-
-      let list = [...state.chats];
-      if (searchTerm.trim()) {
-        const term = searchTerm.toLowerCase();
-        list = list.filter(c => c.title.toLowerCase().includes(term));
-      }
-
-      // Sort pinned chats to top, then by timestamp
-      list.sort((a, b) => {
-        if (a.isPinned === b.isPinned) {
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        }
-        return a.isPinned ? -1 : 1;
-      });
-
-      if (list.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-8 text-xs text-gray-400">
-            <i data-lucide="message-square-dashed" class="w-6 h-6 mx-auto mb-2 opacity-60"></i>
-            <span>No conversations found</span>
-          </div>
-        `;
-        lucide.createIcons();
-        return;
-      }
-
-      list.forEach(chat => {
-        const isActive = chat.id === state.activeChatId;
-        const div = document.createElement('div');
-        div.className = `group flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium cursor-pointer transition select-none ${
-          isActive 
-            ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 font-semibold' 
-            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-hover'
-        }`;
-
-        div.onclick = () => switchChat(chat.id);
-
-        div.innerHTML = `
-          <div class="flex items-center gap-2 truncate pr-2 flex-1">
-            <i data-lucide="${chat.isPinned ? 'pin' : 'message-square'}" class="w-3.5 h-3.5 flex-shrink-0 ${chat.isPinned ? 'text-amber-500 fill-amber-500/20' : 'text-gray-400'}"></i>
-            <span class="truncate">${chat.title}</span>
-          </div>
-          <div class="items-center gap-1 hidden group-hover:flex">
-            <button class="p-1 hover:text-amber-500 rounded transition" title="${chat.isPinned ? 'Unpin' : 'Pin'}" onclick="togglePinChat('${chat.id}', event)">
-              <i data-lucide="pin" class="w-3 h-3"></i>
-            </button>
-            <button class="p-1 hover:text-red-500 rounded transition" title="Delete" onclick="deleteChat('${chat.id}', event)">
-              <i data-lucide="trash" class="w-3 h-3"></i>
-            </button>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-
-      lucide.createIcons();
-    }
-
-    function renderActiveConversation() {
-      const chat = getActiveChat();
-      const messagesContainer = document.getElementById('messages-list');
-      const welcomeScreen = document.getElementById('welcome-screen');
-      const titleEl = document.getElementById('current-chat-title');
-
-      if (!chat) return;
-      titleEl.textContent = chat.title;
-
-      if (chat.messages.length === 0) {
-        welcomeScreen.classList.remove('hidden');
-        messagesContainer.innerHTML = '';
-        return;
-      }
-
-      welcomeScreen.classList.add('hidden');
-      messagesContainer.innerHTML = '';
-
-      chat.messages.forEach((msg, idx) => {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `flex gap-3 md:gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`;
-
-        if (msg.role === 'user') {
-          // User Message
-          let attachmentHtml = '';
-          if (msg.attachments && msg.attachments.length > 0) {
-            attachmentHtml = `
-              <div class="flex flex-wrap gap-2 mb-2">
-                ${msg.attachments.map(att => `
-                  <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-700/40 text-[11px] font-mono border border-brand-500/30">
-                    <i data-lucide="file" class="w-3 h-3"></i>
-                    <span class="truncate max-w-[120px]">${att.name}</span>
-                  </div>
-                `).join('')}
-              </div>
-            `;
-          }
-
-          msgDiv.innerHTML = `
-            <div class="max-w-[85%] sm:max-w-[75%] flex flex-col items-end">
-              ${attachmentHtml}
-              <div class="px-4 py-3 rounded-2xl rounded-tr-sm bg-brand-600 text-white text-sm shadow-md whitespace-pre-wrap leading-relaxed">
-                ${escapeHtml(msg.content)}
-              </div>
-              <span class="text-[10px] text-gray-400 mt-1 mr-1">${formatTime(msg.timestamp)}</span>
-            </div>
-          `;
-        } else {
-          // Assistant Message
-          const parsedContent = marked.parse(msg.content || '');
-          msgDiv.innerHTML = `
-            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white flex-shrink-0 shadow-sm mt-0.5">
-              <i data-lucide="bot" class="w-4 h-4"></i>
-            </div>
-            <div class="flex-1 max-w-[90%] sm:max-w-[85%]">
-              <div class="px-4 py-3 rounded-2xl rounded-tl-sm bg-gray-50 dark:bg-dark-card border border-gray-200 dark:border-dark-border text-slate-800 dark:text-slate-100 text-sm shadow-sm prose-ai">
-                ${parsedContent}
-              </div>
-              
-              <!-- Assistant Message Action Bar -->
-              <div class="flex items-center gap-3 mt-1.5 ml-1 text-gray-400 text-xs">
-                <button class="hover:text-brand-500 transition flex items-center gap-1" title="Copy response" onclick="copyMessageText('${idx}')">
-                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                </button>
-                <button class="hover:text-brand-500 transition flex items-center gap-1" title="Read aloud" onclick="speakMessageText('${idx}')">
-                  <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
-                </button>
-                <button class="hover:text-brand-500 transition flex items-center gap-1" title="Regenerate from here" onclick="regenerateFrom('${idx}')">
-                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                </button>
-                <button class="hover:text-emerald-500 transition ${msg.feedback === 'up' ? 'text-emerald-500' : ''}" title="Good response" onclick="rateMessage('${idx}', 'up')">
-                  <i data-lucide="thumbs-up" class="w-3.5 h-3.5"></i>
-                </button>
-                <button class="hover:text-rose-500 transition ${msg.feedback === 'down' ? 'text-rose-500' : ''}" title="Poor response" onclick="rateMessage('${idx}', 'down')">
-                  <i data-lucide="thumbs-down" class="w-3.5 h-3.5"></i>
-                </button>
-                <span class="text-[10px] text-gray-400 font-mono ml-auto">${formatTime(msg.timestamp)}</span>
-              </div>
-            </div>
-          `;
-        }
-
-        messagesContainer.appendChild(msgDiv);
-      });
-
-      attachCopyCodeListeners();
-      lucide.createIcons();
-      scrollToBottom();
-    }
-
-    function attachCopyCodeListeners() {
-      document.querySelectorAll('.copy-code-btn').forEach(btn => {
-        btn.onclick = function() {
-          const rawCode = decodeURIComponent(this.getAttribute('data-code'));
-          copyToClipboard(rawCode);
-          const origHtml = this.innerHTML;
-          this.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span class="text-emerald-400">Copied!</span>';
-          lucide.createIcons();
-          setTimeout(() => {
-            this.innerHTML = origHtml;
-            lucide.createIcons();
-          }, 2000);
-        };
-      });
-    }
-
-    function copyToClipboard(text) {
-      // Robust iframe-compatible clipboard method
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        document.execCommand('copy');
-        showToast('Copied to clipboard', 'success');
-      } catch (err) {
-        showToast('Failed to copy', 'error');
-      }
-      document.body.removeChild(textarea);
-    }
-
-    function copyMessageText(msgIndex) {
-      const chat = getActiveChat();
-      if (!chat || !chat.messages[msgIndex]) return;
-      copyToClipboard(chat.messages[msgIndex].content);
-    }
-
-    function rateMessage(msgIndex, type) {
-      const chat = getActiveChat();
-      if (!chat || !chat.messages[msgIndex]) return;
-      chat.messages[msgIndex].feedback = chat.messages[msgIndex].feedback === type ? null : type;
-      saveState();
-      renderActiveConversation();
-      showToast(chat.messages[msgIndex].feedback ? 'Thank you for your feedback!' : 'Feedback removed', 'info');
-    }
-
-    function initSpeechRecognition() {
-      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRec) return null;
-
-      const rec = new SpeechRec();
-      rec.continuous = false;
-      rec.interimResults = true;
-      rec.lang = 'en-US';
-
-      rec.onstart = () => {
-        isRecording = true;
-        document.getElementById('voice-indicator').classList.remove('hidden');
-        document.getElementById('voice-dictation-btn').classList.add('text-red-500');
-        showToast('Listening...', 'info');
-      };
-
-      rec.onresult = (e) => {
-        let transcript = '';
-        for (let i = e.resultIndex; i < e.results.length; ++i) {
-          transcript += e.results[i][0].transcript;
-        }
-        const textarea = document.getElementById('chat-textarea');
-        textarea.value = (textarea.value ? textarea.value + ' ' : '') + transcript;
-        updateInputState();
-      };
-
-      rec.onerror = (e) => {
-        console.warn('Speech recognition error:', e.error);
-        stopRecording();
-        showToast('Voice dictation error: ' + e.error, 'error');
-      };
-
-      rec.onend = () => {
-        stopRecording();
-      };
-
-      return rec;
-    }
-
-    function toggleVoiceDictation() {
-      if (!speechRecognition) {
-        speechRecognition = initSpeechRecognition();
-        if (!speechRecognition) {
-          showToast('Speech Recognition not supported in this browser.', 'error');
-          return;
-        }
-      }
-
-      if (isRecording) {
-        speechRecognition.stop();
-        stopRecording();
-      } else {
-        try {
-          speechRecognition.start();
-        } catch (err) {
-          stopRecording();
-        }
-      }
-    }
-
-    function stopRecording() {
-      isRecording = false;
-      document.getElementById('voice-indicator').classList.add('hidden');
-      document.getElementById('voice-dictation-btn').classList.remove('text-red-500');
-    }
-
-    function speakMessageText(msgIndex) {
-      const chat = getActiveChat();
-      if (!chat || !chat.messages[msgIndex]) return;
-
-      if (!('speechSynthesis' in window)) {
-        showToast('Text-to-speech not supported in this browser.', 'error');
-        return;
-      }
-
-      // Stop any ongoing speech
-      if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-        return;
-      }
-
-      const text = chat.messages[msgIndex].content;
-      // Strip markdown syntax for natural reading
-      const cleanText = text.replace(/[`*#_\[\]]/g, '').trim();
-
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      utterance.onstart = () => showToast('Playing audio...', 'info');
-      utterance.onerror = () => showToast('Audio playback error', 'error');
-
-      window.speechSynthesis.speak(utterance);
-    }
-
-    function handleFileUpload(files) {
-      Array.from(files).forEach(file => {
-        if (file.size > 5 * 1024 * 1024) {
-          showToast(`File "${file.name}" exceeds 5MB limit.`, 'error');
-          return;
-        }
-
-        const reader = new FileReader();
-        const isImage = file.type.startsWith('image/');
-
-        reader.onload = (e) => {
-          activeAttachments.push({
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            data: e.target.result,
-            isImage: isImage
-          });
-          renderAttachmentPreviews();
-        };
-
-        if (isImage) {
-          reader.readAsDataURL(file);
-        } else {
-          reader.readAsText(file);
-        }
-      });
-    }
-
-    function renderAttachmentPreviews() {
-      const container = document.getElementById('attachments-preview');
-      container.innerHTML = '';
-
-      activeAttachments.forEach((att, idx) => {
-        const badge = document.createElement('div');
-        badge.className = 'flex items-center gap-2 px-2.5 py-1 rounded-xl bg-gray-200 dark:bg-dark-card border border-gray-300 dark:border-dark-border text-xs';
-        badge.innerHTML = `
-          <i data-lucide="${att.isImage ? 'image' : 'file-text'}" class="w-3.5 h-3.5 text-brand-500"></i>
-          <span class="truncate max-w-[150px] font-mono text-[11px]">${att.name}</span>
-          <button class="hover:text-red-500 text-gray-400 p-0.5 rounded transition" onclick="removeAttachment(${idx})">
-            <i data-lucide="x" class="w-3 h-3"></i>
-          </button>
-        `;
-        container.appendChild(badge);
-      });
-
-      lucide.createIcons();
-    }
-
-    function removeAttachment(index) {
-      activeAttachments.splice(index, 1);
-      renderAttachmentPreviews();
-    }
-
-    async function sendMessage() {
-      const textarea = document.getElementById('chat-textarea');
-      const text = textarea.value.trim();
-
-      if (!text && activeAttachments.length === 0) return;
-      if (isGenerating) return;
-
-      const chat = getActiveChat();
-      if (!chat) return;
-
-      // Auto-set title from first message
-      if (chat.messages.length === 0) {
-        chat.title = text.slice(0, 32) + (text.length > 32 ? '...' : '');
-        document.getElementById('current-chat-title').textContent = chat.title;
-      }
-
-      // Add User Message
-      const userMessage = {
-        role: 'user',
-        content: text,
-        timestamp: new Date().toISOString(),
-        attachments: [...activeAttachments]
-      };
-      chat.messages.push(userMessage);
-
-      // Clear input & attachments
-      textarea.value = '';
-      activeAttachments = [];
-      renderAttachmentPreviews();
-      updateInputState();
-      saveState();
-      renderActiveConversation();
-
-      // Initiate Assistant Response
-      startGeneratingResponse(chat);
-    }
-
-    async function startGeneratingResponse(chat) {
-      isGenerating = true;
-      toggleGeneratingUI(true);
-
-      const messagesContainer = document.getElementById('messages-list');
-      const assistantMsgDiv = document.createElement('div');
-      assistantMsgDiv.className = 'flex gap-3 md:gap-4 justify-start';
-      assistantMsgDiv.innerHTML = `
-        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white flex-shrink-0 shadow-sm mt-0.5">
-          <i data-lucide="bot" class="w-4 h-4"></i>
-        </div>
-        <div class="flex-1 max-w-[90%] sm:max-w-[85%]">
-          <div id="streaming-content" class="px-4 py-3 rounded-2xl rounded-tl-sm bg-gray-50 dark:bg-dark-card border border-gray-200 dark:border-dark-border text-slate-800 dark:text-slate-100 text-sm shadow-sm prose-ai cursor-blink">
-            Thinking...
-          </div>
-        </div>
-      `;
-      messagesContainer.appendChild(assistantMsgDiv);
-      lucide.createIcons();
-      scrollToBottom();
-
-      const streamingEl = document.getElementById('streaming-content');
-      abortController = new AbortController();
-
-      try {
-        let fullResponse = '';
-        const apiKey = state.settings.apiKey.trim();
-
-        if (apiKey) {
-          // Live Gemini API Call with Exponential Backoff
-          fullResponse = await callGeminiAPI(chat, apiKey, abortController.signal);
-        } else {
-          // Intelligent Simulated Engine
-          fullResponse = await generateContextualSimulatedResponse(chat);
-        }
-
-        // Stream the text into the bubble smoothly
-        await streamTypewriterEffect(streamingEl, fullResponse, abortController.signal);
-
-        // Append to chat history
-        chat.messages.push({
-          role: 'model',
-          content: fullResponse,
-          timestamp: new Date().toISOString()
-        });
-        saveState();
-
-      } catch (err) {
-        if (err.name === 'AbortError') {
-          showToast('Generation cancelled', 'info');
-        } else {
-          console.error('API Error:', err);
-          streamingEl.innerHTML = `<span class="text-rose-500">Error generating response: ${err.message || 'Network issue'}. Falling back to local offline mode.</span>`;
-          // Fallback generated message
-          const fallback = generateContextualSimulatedResponse(chat);
-          chat.messages.push({
-            role: 'model',
-            content: fallback,
-            timestamp: new Date().toISOString()
-          });
-          saveState();
-        }
-      } finally {
-        isGenerating = false;
-        abortController = null;
-        toggleGeneratingUI(false);
-        renderActiveConversation();
-        renderSidebarChats();
-      }
-    }
-
-    async function streamTypewriterEffect(targetElement, fullText, signal) {
-      targetElement.textContent = '';
-      const words = fullText.split(' ');
-      let current = '';
-
-      for (let i = 0; i < words.length; i++) {
-        if (signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
-        current += (i === 0 ? '' : ' ') + words[i];
-        targetElement.innerHTML = marked.parse(current);
-        attachCopyCodeListeners();
-        scrollToBottom();
-        // Variable typewriter delay based on punctuation
-        const delay = words[i].includes('.') || words[i].includes('\n') ? 35 : 15;
-        await new Promise(r => setTimeout(r, delay));
-      }
-      targetElement.classList.remove('cursor-blink');
-    }
-
-    async function callGeminiAPI(chat, apiKey, signal) {
-      const model = state.settings.model || 'gemini-3-flash-preview';
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-      // Format conversation history for Gemini API
-      const contents = chat.messages.map(msg => {
-        const parts = [{ text: msg.content }];
-        if (msg.attachments && msg.attachments.length > 0) {
-          msg.attachments.forEach(att => {
-            if (att.isImage) {
-              const base64Data = att.data.split(',')[1];
-              parts.push({
-                inlineData: {
-                  mimeType: att.type,
-                  data: base64Data
-                }
-              });
-            } else {
-              parts.push({
-                text: `\n[Attached File: ${att.name}]\n${att.data}\n`
-              });
-            }
-          });
-        }
-        return {
-          role: msg.role === 'model' ? 'model' : 'user',
-          parts: parts
-        };
-      });
-
-      const payload = {
-        contents: contents,
-        systemInstruction: {
-          parts: [{ text: state.settings.systemPrompt }]
-        },
-        generationConfig: {
-          temperature: parseFloat(state.settings.temperature) || 0.7
-        }
-      };
-
-      // Exponential backoff fetch
-      let delay = 1000;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const res = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            signal: signal
-          });
-
-          if (!res.ok) {
-            const errBody = await res.json().catch(() => ({}));
-            throw new Error(errBody.error?.message || `HTTP error ${res.status}`);
-          }
-
-          const data = await res.json();
-          const candidate = data.candidates?.[0];
-          if (candidate?.content?.parts?.[0]?.text) {
-            return candidate.content.parts[0].text;
-          }
-          throw new Error('No candidate content received from model');
-        } catch (err) {
-          if (err.name === 'AbortError') throw err;
-          if (attempt === 2) throw err;
-          await new Promise(r => setTimeout(r, delay));
-          delay *= 2;
-        }
-      }
-    }
-
-    function generateContextualSimulatedResponse(chat) {
-      const lastUserMsg = [...chat.messages].reverse().find(m => m.role === 'user');
-      const query = lastUserMsg ? lastUserMsg.content.toLowerCase() : '';
-      const persona = state.settings.persona;
-
-      if (query.includes('code') || query.includes('javascript') || query.includes('python') || query.includes('function') || query.includes('react')) {
-        return `Here is an optimized, modular implementation designed for high readability and fault tolerance:
-
-\`\`\`javascript
-/**
- * Asynchronously processes batch data with retry and concurrency limits.
- * @param {Array<any>} items - The list of items to process.
- * @param {Function} workerFn - Async function applied to each item.
- * @param {number} concurrency - Max concurrent workers.
- */
-async function processBatchConcurrently(items, workerFn, concurrency = 4) {
-  const results = [];
-  const executing = new Set();
-
-  for (const item of items) {
-    const promise = Promise.resolve().then(() => workerFn(item));
-    results.push(promise);
-    executing.add(promise);
-
-    const clean = () => executing.delete(promise);
-    promise.then(clean).catch(clean);
-
-    if (executing.size >= concurrency) {
-      await Promise.race(executing);
-    }
-  }
-
-  return Promise.all(results);
-}
-\`\`\`
-
-### Architectural Highlights:
-1. **Concurrency Pool**: Uses \`Promise.race\` to keep exactly \`N\` promises saturated without blocking the main event loop.
-2. **Memory Efficiency**: Disposes completed promise handles immediately via \`Set.delete\`.
-3. **Graceful Degeneration**: Non-throwing cleanup handler guarantees zero dangling worker threads.`;
-      }
-
-      if (query.includes('table') || query.includes('compare') || query.includes('analysis') || persona === 'executive_analyst') {
-        return `### Strategic Comparative Overview
-
-Here is the analytical breakdown structured for executive review:
-
-| Capability Vector | Approach Alpha | Approach Beta | Strategic Impact |
-| :--- | :--- | :--- | :--- |
-| **Throughput / Latency** | Low (<15ms) | Moderate (45ms) | High Efficiency Gain |
-| **Maintenance Cost** | Minimal Standard | Moderate Custom | ~35% TCO Reduction |
-| **Fault Tolerance** | Redundant Nodes | Single Instance | Critical Reliability |
-| **Scalability Horizon**| Distributed Cloud| Vertical Scale | Long-term Adaptability |
-
-> **Key Takeaway:** Prioritizing **Approach Alpha** delivers superior margin resilience and limits technical debt over multi-quarter cycles.`;
-      }
-
-      if (persona === 'creative_writer' || query.includes('story') || query.includes('write')) {
-        return `The twilight descended over the jagged mountain rim like violet ink spilled on raw silk. In the valley below, an amber lantern flickered in the watchtower, trembling against the rising northern gales.
-
-Lyra tightened her woolen cloak, her hand resting upon the brass astrolabe tucked into her pocket. The stars had begun their ancient alignment, burning through the mist with cold, celestial precision. Every calculation had led to this exact solstice—the night when the silent ruins would finally whisper back.`;
-      }
-
-      // Default Assistant Response
-      return `I have reviewed your inquiry and synthesized the key considerations:
-
-- **Core Insight**: Complex architectures flourish when decoupled into single-responsibility modules with predictable data contracts.
-- **Immediate Step**: Standardize input boundaries and configure automated unit verifications early in the iteration lifecycle.
-- **Feedback Loop**: Continuously monitor real-world latency metrics to drive informed architectural refinements.
-
-Feel free to paste any specific code snippets, data schemas, or goals, and we can iterate directly!`;
-    }
-
-    function regenerateFrom(index) {
-      const chat = getActiveChat();
-      if (!chat) return;
-      chat.messages = chat.messages.slice(0, parseInt(index));
-      saveState();
-      renderActiveConversation();
-      startGeneratingResponse(chat);
-    }
-
-    function stopGeneration() {
-      if (abortController) {
-        abortController.abort();
-      }
-      isGenerating = false;
-      toggleGeneratingUI(false);
-    }
-
-    function toggleGeneratingUI(generating) {
-      const stopContainer = document.getElementById('stop-generation-container');
-      const sendBtn = document.getElementById('send-btn');
-      const textarea = document.getElementById('chat-textarea');
-
-      if (generating) {
-        stopContainer.classList.remove('hidden');
-        sendBtn.disabled = true;
-        textarea.disabled = true;
-      } else {
-        stopContainer.classList.add('hidden');
-        textarea.disabled = false;
-        updateInputState();
-        textarea.focus();
-      }
-      lucide.createIcons();
-    }
-
-    function showToast(message, type = 'info') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      
-      const icons = {
-        info: 'info',
-        success: 'check-circle-2',
-        error: 'alert-circle'
-      };
-      const colors = {
-        info: 'bg-slate-900 dark:bg-dark-card border-slate-700 text-slate-100',
-        success: 'bg-emerald-950 border-emerald-700 text-emerald-200',
-        error: 'bg-rose-950 border-rose-700 text-rose-200'
-      };
-
-      toast.className = `flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-xs shadow-xl transition-all duration-300 transform translate-y-3 opacity-0 ${colors[type] || colors.info}`;
-      toast.innerHTML = `
-        <i data-lucide="${icons[type] || 'info'}" class="w-4 h-4"></i>
-        <span>${message}</span>
-      `;
-      container.appendChild(toast);
-      lucide.createIcons();
-
-      // Trigger animation
-      setTimeout(() => {
-        toast.classList.remove('translate-y-3', 'opacity-0');
-      }, 10);
-
-      // Auto dismiss
-      setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-2');
-        setTimeout(() => toast.remove(), 300);
-      }, 3200);
-    }
-
-    function showConfirmModal(title, description, onConfirm) {
-      const modal = document.getElementById('confirm-modal');
-      document.getElementById('confirm-modal-title').textContent = title;
-      document.getElementById('confirm-modal-desc').textContent = description;
-
-      const acceptBtn = document.getElementById('confirm-accept-btn');
-      const cancelBtn = document.getElementById('confirm-cancel-btn');
-
-      modal.classList.remove('hidden');
-
-      const cleanup = () => {
-        modal.classList.add('hidden');
-        acceptBtn.onclick = null;
-        cancelBtn.onclick = null;
-      };
-
-      acceptBtn.onclick = () => {
-        cleanup();
-        onConfirm();
-      };
-      cancelBtn.onclick = cleanup;
-    }
-
-    function setupEventListeners() {
-      const textarea = document.getElementById('chat-textarea');
-      const sendBtn = document.getElementById('send-btn');
-      const fileInput = document.getElementById('file-input');
-
-      // Textarea auto-resize and send handlers
-      textarea.addEventListener('input', () => {
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.min(textarea.scrollHeight, 192) + 'px';
-        updateInputState();
-      });
-
-      textarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          if (!sendBtn.disabled) sendMessage();
-        }
-      });
-
-      sendBtn.addEventListener('click', sendMessage);
-
-      // Starter prompt card clicks
-      document.querySelectorAll('.starter-card').forEach(card => {
-        card.addEventListener('click', () => {
-          const prompt = card.getAttribute('data-prompt');
-          textarea.value = prompt;
-          textarea.style.height = 'auto';
-          textarea.style.height = Math.min(textarea.scrollHeight, 192) + 'px';
-          updateInputState();
-          sendMessage();
-        });
-      });
-
-      // File attachment trigger
-      document.getElementById('attach-file-btn').addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', (e) => handleFileUpload(e.target.files));
-
-      // Voice dictation button
-      document.getElementById('voice-dictation-btn').addEventListener('click', toggleVoiceDictation);
-
-      // Stop generation button
-      document.getElementById('stop-generation-btn').addEventListener('click', stopGeneration);
-
-      // Search chats filter
-      document.getElementById('search-chats-input').addEventListener('input', (e) => {
-        renderSidebarChats(e.target.value);
-      });
-
-      // New Chat button
-      document.getElementById('new-chat-btn').addEventListener('click', () => createNewChat(true));
-
-      // Theme toggle button
-      document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
-
-      // Sidebar mobile drawer toggles
-      document.getElementById('open-sidebar-btn').addEventListener('click', openMobileSidebar);
-      document.getElementById('close-sidebar-btn').addEventListener('click', closeMobileSidebar);
-      document.getElementById('sidebar-backdrop').addEventListener('click', closeMobileSidebar);
-
-      // Header rename button
-      document.getElementById('rename-chat-btn').addEventListener('click', renameCurrentChat);
-
-      // Clear thread messages
-      document.getElementById('clear-thread-btn').addEventListener('click', () => {
-        const chat = getActiveChat();
-        if (!chat || chat.messages.length === 0) return;
-        showConfirmModal('Clear Thread', 'Clear all messages in this conversation?', () => {
-          chat.messages = [];
-          saveState();
-          renderActiveConversation();
-          showToast('Thread cleared', 'info');
-        });
-      });
-
-      // Export Thread as Markdown
-      document.getElementById('export-current-md-btn').addEventListener('click', exportActiveChatMarkdown);
-
-      // Export All as JSON
-      document.getElementById('export-all-btn').addEventListener('click', exportAllChatsJSON);
-
-      // Clear all history
-      document.getElementById('clear-all-btn').addEventListener('click', () => {
-        showConfirmModal('Erase All Conversations', 'This will delete all conversations permanently.', () => {
-          state.chats = [];
-          createNewChat(true);
-          showToast('All conversations erased', 'info');
-        });
-      });
-
-      // Settings Modal toggles
-      const settingsModal = document.getElementById('settings-modal');
-      document.getElementById('open-settings-btn').addEventListener('click', openSettingsModal);
-      document.getElementById('close-settings-btn').addEventListener('click', () => settingsModal.classList.add('hidden'));
-      document.getElementById('cancel-settings-btn').addEventListener('click', () => settingsModal.classList.add('hidden'));
-      document.getElementById('save-settings-btn').addEventListener('click', saveSettingsFromModal);
-
-      // Persona dropdown change in settings
-      document.getElementById('persona-select').addEventListener('change', (e) => {
-        const selected = e.target.value;
-        if (PERSONA_PROMPTS[selected]) {
-          document.getElementById('system-prompt-input').value = PERSONA_PROMPTS[selected];
-        }
-      });
-
-      // Temperature slider display
-      document.getElementById('temp-slider').addEventListener('input', (e) => {
-        document.getElementById('temp-display').textContent = e.target.value;
-      });
-
-      // API Key show/hide toggle
-      document.getElementById('toggle-key-visibility').addEventListener('click', () => {
-        const keyInput = document.getElementById('api-key-input');
-        keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
-      });
-
-      // Global keyboard shortcuts (Cmd+K for new chat)
-      window.addEventListener('keydown', (e) => {
-        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-          e.preventDefault();
-          createNewChat(true);
-        }
-      });
-    }
-
-    function updateInputState() {
-      const textarea = document.getElementById('chat-textarea');
-      const sendBtn = document.getElementById('send-btn');
-      const charCounter = document.getElementById('char-counter');
-      const hasContent = textarea.value.trim().length > 0 || activeAttachments.length > 0;
-
-      sendBtn.disabled = !hasContent || isGenerating;
-      charCounter.textContent = `${textarea.value.length} chars`;
-    }
-
-    function openMobileSidebar() {
-      document.getElementById('sidebar').classList.remove('-translate-x-full');
-      document.getElementById('sidebar-backdrop').classList.remove('hidden');
-    }
-
-    function closeMobileSidebar() {
-      document.getElementById('sidebar').classList.add('-translate-x-full');
-      document.getElementById('sidebar-backdrop').classList.add('hidden');
-    }
-
-    function openSettingsModal() {
-      const modal = document.getElementById('settings-modal');
-      document.getElementById('api-key-input').value = state.settings.apiKey;
-      document.getElementById('model-select').value = state.settings.model;
-      document.getElementById('persona-select').value = state.settings.persona;
-      document.getElementById('system-prompt-input').value = state.settings.systemPrompt;
-      document.getElementById('temp-slider').value = state.settings.temperature;
-      document.getElementById('temp-display').textContent = state.settings.temperature;
-      modal.classList.remove('hidden');
-    }
-
-    function saveSettingsFromModal() {
-      state.settings.apiKey = document.getElementById('api-key-input').value.trim();
-      state.settings.model = document.getElementById('model-select').value;
-      state.settings.persona = document.getElementById('persona-select').value;
-      state.settings.systemPrompt = document.getElementById('system-prompt-input').value.trim();
-      state.settings.temperature = parseFloat(document.getElementById('temp-slider').value);
-
-      document.getElementById('active-persona-badge').textContent = state.settings.persona.replace('_', ' ');
-      document.getElementById('model-pill-name').textContent = state.settings.model;
-
-      saveState();
-      document.getElementById('settings-modal').classList.add('hidden');
-      showToast('Settings saved successfully', 'success');
-    }
-
-    function exportActiveChatMarkdown() {
-      const chat = getActiveChat();
-      if (!chat) return;
-
-      let md = `# ${chat.title}\n*Exported on ${new Date().toLocaleString()}*\n\n---\n\n`;
-      chat.messages.forEach(m => {
-        md += `### ${m.role === 'user' ? 'User' : 'Assistant'} (${formatTime(m.timestamp)})\n\n`;
-        md += `${m.content}\n\n---\n\n`;
-      });
-
-      downloadFile(`${chat.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`, md, 'text/markdown');
-      showToast('Exported Markdown', 'success');
-    }
-
-    function exportAllChatsJSON() {
-      const dataStr = JSON.stringify(state.chats, null, 2);
-      downloadFile(`nexus_ai_backup_${Date.now()}.json`, dataStr, 'application/json');
-      showToast('Exported JSON backup', 'success');
-    }
-
-    function downloadFile(filename, content, mime) {
-      const blob = new Blob([content], { type: mime });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    function scrollToBottom() {
-      const container = document.getElementById('messages-container');
-      container.scrollTop = container.scrollHeight;
-    }
-
-    function formatTime(isoString) {
-      if (!isoString) return '';
-      const date = new Date(isoString);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function escapeHtml(str) {
-      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      loadSavedState();
-      applyTheme(state.theme);
-      document.getElementById('active-persona-badge').textContent = state.settings.persona.replace('_', ' ');
-      document.getElementById('model-pill-name').textContent = state.settings.model;
-
-      renderSidebarChats();
-      renderActiveConversation();
-      setupEventListeners();
-      lucide.createIcons();
-    });
-  </script>
-</body>
-</html>
+## Overview
+
+Claude.com is the warmest, most editorial interface in the AI-product category. The base atmosphere is a **tinted cream canvas** (`{colors.canvas}` — #faf9f5) — distinctly warm, deliberately not the cool gray-white that every other AI brand uses. Headlines run a **slab-serif display** ("Copernicus" / Tiempos Headline) at weight 400 with negative letter-spacing, paired with **StyreneB / Inter** body sans. The combination feels like a literary publication, not a SaaS marketing page.
+
+Brand voltage comes from the **cream + coral pairing** — coral (`{colors.primary}` — #cc785c) is the signature Anthropic accent, used on every primary CTA, on the brand wordmark, and on full-bleed callout cards. The coral is warm, slightly muted, never cyan/blue — a deliberate counter-positioning against OpenAI's cool slate, Google's saturated blue, and Microsoft's corporate cyan.
+
+The system has three surface modes that alternate page-by-page:
+1. **Cream canvas** (`{colors.canvas}`) — default body floor
+2. **Light cream cards** (`{colors.surface-card}`) — feature card backgrounds
+3. **Dark navy product surfaces** (`{colors.surface-dark}`) — code editor mockups, model showcase cards, pre-footer CTAs, footer itself
+
+The dark surfaces are where Claude shows its product chrome — code blocks, terminal output, model comparison tables, agentic-flow diagrams. The cream-to-dark contrast is the page's pacing rhythm.
+
+**Key Characteristics:**
+- Warm cream canvas (`{colors.canvas}` — #faf9f5) with dark warm-ink text (`{colors.ink}` — #141413). The brand's defining color choice.
+- Coral primary CTA (`{colors.primary}` — #cc785c). Used scarcely on individual buttons, generously on full-bleed coral callout cards.
+- Slab-serif display headlines via Copernicus / Tiempos Headline at weight 400 with negative letter-spacing. Pairs with humanist sans body for a literary editorial voice.
+- Dark navy product mockup cards (`{colors.surface-dark}` — #181715) carrying code blocks, terminal panels, model comparison data — the brand shows the product chrome at scale rather than abstract marketing illustrations.
+- Light cream feature cards (`{colors.surface-card}` — #efe9de) — slightly darker than canvas, used for content-driven feature explanations.
+- Anthropic radial-spike mark — a small black asterisk-like glyph (4-spoke radial) — appears as the brand wordmark prefix and as a content marker.
+- Border radius is hierarchical: `{rounded.md}` (8px) for buttons + inputs, `{rounded.lg}` (12px) for content + product cards, `{rounded.xl}` (16px) for the hero illustration container, `{rounded.pill}` for badges.
+- Section rhythm `{spacing.section}` (96px) — modern-SaaS standard. Internal card padding stays generous at `{spacing.xl}` (32px).
+
+## Colors
+
+### Brand & Accent
+- **Coral / Primary** (`{colors.primary}` — #cc785c): The signature Anthropic warm coral. Used on every primary CTA background, on full-bleed coral callout cards, on the brand wordmark accent. The most-recognized Anthropic color outside of the spike-mark logo.
+- **Coral Active** (`{colors.primary-active}` — #a9583e): The press / hover-darker variant.
+- **Coral Disabled** (`{colors.primary-disabled}` — #e6dfd8): A desaturated cream-tinted disabled state.
+- **Accent Teal** (`{colors.accent-teal}` — #5db8a6): Used sparingly on secondary product surfaces (terminal status indicators, "active connection" dots in connectors page).
+- **Accent Amber** (`{colors.accent-amber}` — #e8a55a): A small companion warm-tone used on category badges and inline highlights.
+
+### Surface
+- **Canvas** (`{colors.canvas}` — #faf9f5): The default page floor. Tinted cream — warm, deliberately not pure white.
+- **Surface Soft** (`{colors.surface-soft}` — #f5f0e8): Section dividers, very-soft band backgrounds.
+- **Surface Card** (`{colors.surface-card}` — #efe9de): Feature cards, content cards. One step darker than canvas.
+- **Surface Cream Strong** (`{colors.surface-cream-strong}` — #e8e0d2): A strongest-cream variant used on selected category tabs and emphasized section bands.
+- **Surface Dark** (`{colors.surface-dark}` — #181715): Code editor mockups, model showcase cards, footer. The dominant dark surface.
+- **Surface Dark Elevated** (`{colors.surface-dark-elevated}` — #252320): Elevated cards inside dark bands (settings panels in mockups).
+- **Surface Dark Soft** (`{colors.surface-dark-soft}` — #1f1e1b): Slightly lighter dark, used for code block backgrounds inside larger dark cards.
+- **Hairline** (`{colors.hairline}` — #e6dfd8): The 1px border tone on cream surfaces. Same hex as `{colors.primary-disabled}` — borders feel like one elevation step rather than ink lines.
+- **Hairline Soft** (`{colors.hairline-soft}` — #ebe6df): Barely-visible divider used inside the same band.
+
+### Text
+- **Ink** (`{colors.ink}` — #141413): All headlines and primary text. Warm dark, slightly off-pure-black.
+- **Body Strong** (`{colors.body-strong}` — #252523): Emphasized paragraphs, lead text.
+- **Body** (`{colors.body}` — #3d3d3a): Default running-text color.
+- **Muted** (`{colors.muted}` — #6c6a64): Sub-headings, breadcrumbs, footer-adjacent secondary text.
+- **Muted Soft** (`{colors.muted-soft}` — #8e8b82): Captions, fine-print, copyright lines.
+- **On Primary** (`{colors.on-primary}` — #ffffff): Text on coral buttons.
+- **On Dark** (`{colors.on-dark}` — #faf9f5): Cream-tinted white used on dark surfaces (echoes the canvas tone).
+- **On Dark Soft** (`{colors.on-dark-soft}` — #a09d96): Footer body text, secondary labels in dark mockups.
+
+### Semantic
+- **Success** (`{colors.success}` — #5db872): Green status dots, "available" indicators.
+- **Warning** (`{colors.warning}` — #d4a017): Warning callouts (rare on marketing surfaces).
+- **Error** (`{colors.error}` — #c64545): Validation errors.
+
+## Typography
+
+### Font Family
+The system runs **Copernicus** (or **Tiempos Headline** as substitute) as the slab-serif display face for headlines, and **StyreneB** (or **Inter** as substitute) as the humanist sans for body, navigation, and UI labels. **JetBrains Mono** handles code blocks. The fallback stack walks `Tiempos Headline, Garamond, "Times New Roman", serif` for display and `Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif` for body.
+
+The display/body split is editorial:
+- Copernicus serif (weight 400, negative tracking) → h1, h2, h3, hero display
+- StyreneB sans (weight 400-500) → body, navigation, buttons, captions, labels
+- JetBrains Mono → all code blocks and terminal text
+
+### Hierarchy
+
+| Token | Size | Weight | Line Height | Letter Spacing | Use |
+|---|---|---|---|---|---|
+| `{typography.display-xl}` | 64px | 400 | 1.05 | -1.5px | Homepage h1 ("Meet your thinking partner") — Copernicus serif |
+| `{typography.display-lg}` | 48px | 400 | 1.1 | -1px | Section heads — Copernicus |
+| `{typography.display-md}` | 36px | 400 | 1.15 | -0.5px | Sub-section heads, model names — Copernicus |
+| `{typography.display-sm}` | 28px | 400 | 1.2 | -0.3px | Pricing tier names, callout headlines — Copernicus |
+| `{typography.title-lg}` | 22px | 500 | 1.3 | 0 | Pricing plan size labels — StyreneB |
+| `{typography.title-md}` | 18px | 500 | 1.4 | 0 | Feature card titles, intro paragraphs |
+| `{typography.title-sm}` | 16px | 500 | 1.4 | 0 | Connector tile titles, list labels |
+| `{typography.body-md}` | 16px | 400 | 1.55 | 0 | Default running-text — StyreneB |
+| `{typography.body-sm}` | 14px | 400 | 1.55 | 0 | Footer body, fine-print |
+| `{typography.caption}` | 13px | 500 | 1.4 | 0 | Badge labels, captions |
+| `{typography.caption-uppercase}` | 12px | 500 | 1.4 | 1.5px | Category tags, "NEW" badges |
+| `{typography.code}` | 14px | 400 | 1.6 | 0 | Code blocks — JetBrains Mono |
+| `{typography.button}` | 14px | 500 | 1.0 | 0 | Standard button labels |
+| `{typography.nav-link}` | 14px | 500 | 1.4 | 0 | Top-nav menu items |
+
+### Principles
+Display sizes use weight 400 (regular), never bold. Negative letter-spacing (-0.3 to -1.5px) is essential — Copernicus without it reads as off-brand. The serif character is what gives Anthropic its literary, considered voice; switching to a sans-serif display would make Claude feel like every other AI tool.
+
+Body type stays at weight 400 for paragraphs, weight 500 for labels and emphasized phrases. The sans body is humanist (StyreneB) — never geometric. Inter is an acceptable substitute because of its similar humanist proportions; Helvetica or Arial would be too neutral and break the warm-editorial feel.
+
+### Note on Font Substitutes
+If Copernicus / Tiempos Headline is unavailable, **Cormorant Garamond** at weight 500 with -0.02em letter-spacing is the closest open-source approximation. **EB Garamond** is a fallback. For StyreneB, **Inter** is the closest match — both are humanist sans designed for screen reading. **Söhne** is another close alternative if licensed.
+
+## Layout
+
+### Spacing System
+- **Base unit:** 4px.
+- **Tokens:** `{spacing.xxs}` 4px · `{spacing.xs}` 8px · `{spacing.sm}` 12px · `{spacing.md}` 16px · `{spacing.lg}` 24px · `{spacing.xl}` 32px · `{spacing.xxl}` 48px · `{spacing.section}` 96px.
+- **Section padding:** `{spacing.section}` (96px) — modern-SaaS rhythm.
+- **Card internal padding:** `{spacing.xl}` (32px) for feature cards, pricing tier cards, model comparison cards; `{spacing.lg}` (24px) for code-window cards and connector tiles.
+- **Callout / CTA bands:** `{spacing.xxl}` (48px) inside coral callout cards; 64px inside the larger dark CTA band.
+
+### Grid & Container
+- **Max content width:** ~1200px centered.
+- **Editorial body:** Single 12-column grid; hero often uses 6/6 split (h1 left, illustration right).
+- **Feature card grids:** 3-up at desktop, 2-up at tablet, 1-up at mobile.
+- **Connector tile grids:** 4-up or 6-up at desktop, 2-up at tablet, 1-up at mobile.
+- **Pricing grid:** 3-up at desktop (Free / Pro / Team / Enterprise often), 1-up at mobile.
+
+### Whitespace Philosophy
+The cream canvas + serif display + generous internal padding create an editorial pacing — Claude reads like a long-form magazine column rather than a marketing template. Whitespace between bands stays uniform at 96px; whitespace inside cards is generous (32px), letting type breathe.
+
+## Elevation & Depth
+
+| Level | Treatment | Use |
+|---|---|---|
+| Flat | No shadow, no border | Body sections, top nav, hero bands |
+| Soft hairline | 1px `{colors.hairline}` border | Inputs, sub-nav, occasionally on cards |
+| Cream card | `{colors.surface-card}` background — no shadow | Feature cards, content cards |
+| Dark surface card | `{colors.surface-dark}` background — no shadow | Code editor mockups, model showcase cards |
+| Subtle drop shadow | Faint shadow at low alpha | Hover-elevated states (the system uses `0 1px 3px rgba(20,20,19,0.08)` rarely) |
+
+The elevation philosophy is **color-block first, shadow rare**. Most depth comes from the cream-vs-dark surface contrast. Shadows are minimal. The dark surface mockups have their own internal product chrome (code editor scrollbars, line numbers, syntax highlighting) which adds detail without needing external shadows.
+
+### Decorative Depth
+- The Anthropic spike-mark glyph (4-spoke radial asterisk) appears as a small black mark in the brand wordmark and inline as a content marker.
+- Code editor mockups carry their own internal depth: syntax-highlighted text in muted blues / oranges / grays, line numbers in `{colors.muted-soft}`, status bars at the bottom in `{colors.surface-dark-elevated}`.
+- Some hero illustrations use simple line-art with coral and dark-navy strokes on cream — minimal, hand-drawn-feeling, never photorealistic.
+
+## Shapes
+
+### Border Radius Scale
+
+| Token | Value | Use |
+|---|---|---|
+| `{rounded.xs}` | 4px | Reserved for badge accents and tiny dropdowns |
+| `{rounded.sm}` | 6px | Small inline buttons, dropdown items |
+| `{rounded.md}` | 8px | Standard CTA buttons, text inputs, category tabs |
+| `{rounded.lg}` | 12px | Content cards (feature, pricing, code-window, model-comparison) |
+| `{rounded.xl}` | 16px | Hero illustration container, the larger marquee components |
+| `{rounded.pill}` | 9999px | Badge pills, "NEW" tags |
+| `{rounded.full}` | 9999px / 50% | Avatar substitutes, icon buttons |
+
+### Photography & Illustrations
+Claude's hero rarely uses photography. Instead it uses:
+- Simple line-art illustrations with coral + dark-navy strokes on the cream canvas
+- Code editor mockups (the dominant "hero" treatment on developer-focused pages)
+- Terminal output mockups with monospace text on dark
+- Model comparison cards (Opus / Sonnet / Haiku) with abstract geometric thumbnails
+
+When photography is used (rare — mostly testimonials), avatars crop to perfect circles at 40px diameter.
+
+## Components
+
+### Top Navigation
+
+**`top-nav`** — Cream nav bar pinned to the top of every page. 64px tall, `{colors.canvas}` background. Carries the Anthropic spike-mark + "Claude" wordmark at left, primary horizontal menu (Product, Solutions, Use Cases, Pricing, Research, Company) center-left, right-side cluster with "Sign in" text-link, "Try Claude" `{component.button-primary}` (coral). Menu items in `{typography.nav-link}` (StyreneB 14px / 500).
+
+### Buttons
+
+**`button-primary`** — The signature coral CTA. Background `{colors.primary}` (#cc785c), text `{colors.on-primary}` (white), type `{typography.button}` (StyreneB 14px / 500), padding 12px × 20px, height 40px, rounded `{rounded.md}` (8px). Active state `button-primary-active` darkens to `{colors.primary-active}` (#a9583e).
+
+**`button-secondary`** — Cream button with hairline outline. Background `{colors.canvas}`, text `{colors.ink}`, 1px hairline border, same padding + height + radius as primary.
+
+**`button-secondary-on-dark`** — Used over `{colors.surface-dark}` cards. Background `{colors.surface-dark-elevated}` (#252320), text `{colors.on-dark}`. Stays dark — the system never inverts to a light secondary on dark surfaces.
+
+**`button-text-link`** — Inline text button, no background. Used for "Sign in" in the top nav and inline CTA links.
+
+**`button-icon-circular`** — 36px circular icon button. Background `{colors.canvas}`, hairline border, ink-color icon. Used for carousel arrows, share, "view more".
+
+**`text-link`** — Inline body links in `{colors.primary}` (the coral). Underlined on press; the coral inline link is one of the system's most distinctive small details.
+
+### Cards & Containers
+
+**`hero-band`** — Cream-canvas hero with a 6-6 grid: h1 + sub-headline + button row on the left, hero illustration card or product mockup card on the right. Vertical padding `{spacing.section}` (96px).
+
+**`hero-illustration-card`** — A larger card holding the hero's right-side artifact — sometimes a coral-stroke line illustration on cream background, sometimes a dark code editor mockup. Background `{colors.canvas}` or `{colors.surface-dark}` depending on context, rounded `{rounded.xl}` (16px).
+
+**`feature-card`** — Used in 3-up feature grids. Background `{colors.surface-card}` (#efe9de — slightly darker cream), rounded `{rounded.lg}` (12px), internal padding `{spacing.xl}` (32px). Carries a small icon at top, an `{typography.title-md}` headline, and a body description in `{typography.body-md}`.
+
+**`product-mockup-card-dark`** — Dark navy card showing actual Claude product chrome (chat interface, code editor, agent controls). Background `{colors.surface-dark}`, rounded `{rounded.lg}`, internal padding `{spacing.xl}` (32px). Carries text labels in `{colors.on-dark}` and product UI fragments below.
+
+**`code-window-card`** — A specialized dark card showing a code editor with line numbers, syntax-highlighted code in `{typography.code}` (JetBrains Mono), and sometimes a "Run" button or terminal output panel below. Background `{colors.surface-dark}` with `{colors.surface-dark-soft}` for the inner code block, rounded `{rounded.lg}`, padding `{spacing.lg}` (24px). The signature visual element of Claude Code product pages.
+
+**`model-comparison-card`** — Used on the homepage's "Which problem are you up against?" section comparing Opus / Sonnet / Haiku. Background `{colors.canvas}` with hairline border, rounded `{rounded.lg}`, internal padding `{spacing.xl}` (32px). Carries the model name, a short capability blurb, and a `{component.text-link}` to learn more.
+
+**`pricing-tier-card`** — Standard tier card. Background `{colors.canvas}` with hairline border, rounded `{rounded.lg}`, padding `{spacing.xl}` (32px). Carries the plan name in `{typography.title-lg}` (StyreneB), price in `{typography.display-sm}` (Copernicus serif!), feature checklist in `{typography.body-md}`, and a `{component.button-primary}` at the bottom.
+
+**`pricing-tier-card-featured`** — The featured tier (typically "Pro" or "Team"). Background flips to `{colors.surface-dark}`, text inverts to `{colors.on-dark}`. The dark surface IS the featured-tier signal.
+
+**`callout-card-coral`** — A full-bleed coral card carrying a major call-to-action. Background `{colors.primary}` (#cc785c), text `{colors.on-primary}` (white), rounded `{rounded.lg}`, padding `{spacing.xxl}` (48px). The coral surface IS the voltage; the CTA inside uses an inverted button style (cream/canvas button on coral).
+
+**`connector-tile`** — Used on the connectors page's integration grid. Background `{colors.canvas}` with hairline border, rounded `{rounded.lg}`, padding 20px. Each tile carries a logo at top, a `{typography.title-sm}` connector name, and a short description.
+
+### Inputs & Forms
+
+**`text-input`** — Standard text input. Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body-md}`, rounded `{rounded.md}` (8px), padding 10px × 14px, height 40px. 1px hairline border in `{colors.hairline}`.
+
+**`text-input-focused`** — Focus state. Border thickens or shifts to `{colors.primary}` (coral) for emphasis. Carries a 3px coral-at-15%-alpha outer ring.
+
+**`cookie-consent-card`** — Bottom-right floating dark cookie banner. Background `{colors.surface-dark}`, text `{colors.on-dark}`, rounded `{rounded.lg}`, padding `{spacing.lg}` (24px). One of the few places dark surface appears at small scale on cream pages.
+
+### Tags / Badges
+
+**`badge-pill`** — Small pill label used for category tags. Background `{colors.surface-card}`, text `{colors.ink}`, type `{typography.caption}` (13px / 500), rounded `{rounded.pill}`, padding 4px × 12px.
+
+**`badge-coral`** — Coral-fill badge for "NEW", "BETA", featured highlights. Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.caption-uppercase}` (12px / 500 / 1.5px tracking), rounded `{rounded.pill}`, padding 4px × 12px.
+
+### Tab / Filter
+
+**`category-tab`** + **`category-tab-active`** — Used in sub-nav rows on solutions / connectors pages. Inactive: transparent background, `{colors.muted}` text. Active: `{colors.surface-card}` background, `{colors.ink}` text. Padding 8px × 14px, rounded `{rounded.md}`.
+
+### CTA / Footer
+
+**`cta-band-coral`** — A pre-footer "Try Claude" CTA card. Full-width coral fill, white type, rounded `{rounded.lg}`, padding 64px. Carries an h2 in `{typography.display-sm}` (still serif!), a sub-line, and a cream-button CTA.
+
+**`cta-band-dark`** — Alternative pre-footer band on developer-focused pages. Background `{colors.surface-dark}`, text `{colors.on-dark}`, rounded `{rounded.lg}`, padding 64px. Often pairs with a code-window card.
+
+**`footer`** — Dark navy footer that closes every page. Background `{colors.surface-dark}` (#181715), text `{colors.on-dark-soft}`. 4-column link list at desktop covering Product / Company / Resources / Legal. Vertical padding 64px. The Anthropic spike-mark + "Anthropic" wordmark sits at the top in `{colors.on-dark}`. The footer never inverts.
+
+## Do's and Don'ts
+
+### Do
+- Anchor every page on the cream canvas. Pure white reads as "any other AI tool"; the warm tint is the brand differentiator.
+- Use Copernicus serif for every display headline. Pair with StyreneB sans body. Negative letter-spacing on display sizes is non-negotiable.
+- Reserve `{colors.primary}` (coral) for primary CTAs and full-bleed `{component.callout-card-coral}` moments. Don't paint accent moments coral elsewhere.
+- Use `{component.product-mockup-card-dark}` and `{component.code-window-card}` to show actual Claude product chrome. Don't paint marketing illustrations of code when you can show real code.
+- Pair `{component.feature-card}` (cream) with `{component.product-mockup-card-dark}` (navy) in alternating bands. The cream-to-dark rhythm is the brand's pacing mechanism.
+- Use the Anthropic spike-mark glyph as the brand wordmark prefix. Never invert the mark to white-on-dark within the wordmark itself.
+- Apply `{spacing.section}` (96px) between major bands.
+
+### Don't
+- Don't use cool grays or pure white for canvas. Cream is the brand.
+- Don't bold serif display weight. Copernicus at 700 reads as bombastic; the system stays at 400.
+- Don't use cool blue or saturated cyan as a brand accent. The coral is the brand voltage.
+- Don't put coral everywhere. The coral is scarce on individual elements and generous only on full-bleed coral callout cards.
+- Don't use Inter for display headlines. The serif character is the brand voice.
+- Don't repeat the same surface mode in two consecutive bands. The pacing alternates: cream → cream-card → dark-mockup → cream → coral-callout → dark-footer.
+- Don't add hover state styling beyond what the system already encodes — primary darkens on press; nothing else changes.
+
+## Responsive Behavior
+
+### Breakpoints
+
+| Name | Width | Key Changes |
+|---|---|---|
+| Mobile | < 768px | Hamburger nav; hero h1 64→32px; hero-illustration-card stacks below content; feature grids 1-up; connector tiles 2-up; pricing 1-up; footer 4 cols → 1 |
+| Tablet | 768–1024px | Top nav stays horizontal but tightens; feature cards 2-up; connector tiles 3-up; pricing 2-up |
+| Desktop | 1024–1440px | Full top-nav with all menu items; 3-up feature cards; 4-up or 6-up connector tiles; 3-up pricing tiers |
+| Wide | > 1440px | Same as desktop with more outer breathing room; max content width caps at 1200px |
+
+### Touch Targets
+- `{component.button-primary}` at minimum 40 × 40px.
+- `{component.button-icon-circular}` at exactly 36 × 36 — slightly under WCAG 44 but visually centered.
+- `{component.text-input}` height is 40px.
+- Connector tile entire card area is tappable; effective tap area >> 44px.
+
+### Collapsing Strategy
+- Top nav collapses to hamburger at < 768px; menu opens as a full-screen cream sheet.
+- Hero band's 6-6 grid collapses to single-column on mobile — h1 + sub-head + buttons first, then the illustration / mockup card below.
+- Feature grids reduce columns rather than scaling cards down.
+- Pricing tier cards collapse 4 → 2 → 1; featured-tier dark surface stays visually distinct at every breakpoint.
+- Code-window cards retain code legibility at every breakpoint by allowing horizontal scroll within the card rather than wrapping code lines.
+
+### Image Behavior
+- Code blocks inside dark mockups stay at fixed font-size; horizontal scroll on mobile rather than wrapping.
+- Hero illustrations scale proportionally; line-art strokes thin slightly on mobile.
+- Avatar photos in testimonials crop to circles at every breakpoint.
+
+## Iteration Guide
+
+1. Focus on ONE component at a time. Reference its YAML key (`{component.feature-card}`, `{component.code-window-card}`).
+2. Variants of an existing component (`-active`, `-disabled`, `-focused`) live as separate entries in `components:`.
+3. Use `{token.refs}` everywhere — never inline hex.
+4. Never document hover. Default and Active/Pressed states only.
+5. Display headlines stay Copernicus serif 400 with negative tracking. Body stays StyreneB / Inter 400. The split is unbreakable.
+6. Cream + coral + dark navy is the trinity. Don't introduce a fourth surface tone (no purple cards, no green sections).
+7. When in doubt about emphasis: bigger Copernicus serif before bolder weight.
+
+## Known Gaps
+
+- Copernicus and StyreneB are licensed Anthropic typefaces and not available as public web fonts. Substitutes (Tiempos Headline / Cormorant Garamond / EB Garamond for serif; Inter / Söhne for sans) are documented in the typography section.
+- The Anthropic radial-spike-mark is a brand glyph rendered as inline SVG; it's not formalized as a system token here. Treat it as a logo asset.
+- Animation and transition timings (chat message reveal, code block typewriter effect on the homepage, agentic-flow diagram animations) are not in scope.
+- Form validation states beyond `{component.text-input-focused}` are not extracted — error / success states would need a sign-up or feedback flow to confirm.
+- The actual Claude product surface (claude.ai chat interface) shares some tokens with the marketing site but adds many product-specific components (chat bubbles, message tools, file upload chips, conversation history sidebar) that are out of scope for this marketing-surface document.
+- The "agent" / "computer use" demo cards on certain pages display animated Claude controlling a browser — the static screenshot doesn't fully capture the animation chrome.
